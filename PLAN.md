@@ -2,7 +2,7 @@
 
 A browser-based version of the board game Reversi (Othello).
 
-Status: **milestone 4 done** (computer opponent). Next: publish. Decisions get recorded here as we make them.
+Status: **published** — https://angelphyr3.github.io/reversi/ (repo: https://github.com/Angelphyr3/reversi). Decisions get recorded here as we make them.
 
 ## The game (rules we're implementing)
 
@@ -283,5 +283,16 @@ Requested after milestone 4:
    Done: 9 AI tests (25 total, ~25 s). Verified in the browser with full games against Easy and
    Expert: every click during the computer's turn was ignored, a forced pass worked, and the layout
    fits a 320px-wide phone. The setup card's Cancel button replaced the "tap again" restart check.
-5. **Publish** — security checklist, noreply commit email, create the GitHub repo, branch
+5. ✅ **Publish** — security checklist, noreply commit email, create the GitHub repo, branch
    protection, enable GitHub Pages.
+   Done (Oct 2026). Before pushing: every commit checked for the noreply address, and every file
+   scanned for emails, secrets and local paths. Repo settings applied:
+   - GitHub Pages serves the `main` branch (HTTPS enforced). Every push to `main` goes live.
+   - Branch protection on `main`: no force-pushes, no deletion.
+   - Actions: workflows get read-only access and can't approve pull requests; workflows from
+     outside contributors' pull requests need your approval before they run. (There are no
+     workflows in the repo.)
+   - Secret scanning and push protection: on (GitHub's default for public repos).
+   - Wiki: off.
+   - No license file: by default that means all rights reserved — others can view and play,
+     but not reuse the code. Add one later if you want to allow reuse.
