@@ -214,6 +214,7 @@ leaves very little to attack, and these rules keep it that way.
 - **Branch protection on `main`:** no force-pushes or deletion. Strangers can suggest changes via
   pull request, but nothing merges without your approval.
 - **Two-factor authentication** on your GitHub account (the single most important protection).
+  ✅ Enabled (Oct 2026).
 - **No secrets in the repo.** The game needs none. A `.gitignore` keeps out OS clutter and local
   Claude settings.
 
