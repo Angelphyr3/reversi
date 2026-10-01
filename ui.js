@@ -9,6 +9,9 @@
   const COLUMNS = "ABCDEFGH";
   const TOAST_MS = 2600;
   const CONFIRM_MS = 3000;
+  const FLIP_MS = 380; // keep in sync with --flip-ms in styles.css
+  const RIPPLE_MS = 70; // extra delay per square of distance from the placed disc
+  const ANIMATION_CLASSES = ["pop", "flip-to-black", "flip-to-white"];
 
   const $ = (id) => document.getElementById(id);
   const boardEl = $("board");
@@ -22,12 +25,15 @@
   const bannerScore = $("banner-score");
   const playAgainBtn = $("play-again");
   const newGameBtn = $("new-game");
+  const muteBtn = $("mute");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const cells = []; // index = row * SIZE + col
   let state;
   let focusIndex = 0; // the one board square reachable with Tab; arrows move it
   let toastTimer = null;
   let confirmTimer = null;
+  let announceTimer = null; // waits for animations to finish before a pass message or the banner
 
   function buildBoard() {
     for (let row = 0; row < SIZE; row++) {
@@ -83,11 +89,43 @@
       turnDisc.dataset.color = state.currentPlayer;
       turnText.textContent = `${NAMES[state.currentPlayer]}'s turn`;
     }
+  }
 
-    if (state.passed) {
-      showToast(`${NAMES[state.passed]} has no moves — ${NAMES[state.currentPlayer]} goes again!`);
-    }
-    if (state.gameOver) showBanner();
+  // Plays the placement and flip animations and their sounds, comparing the board before and
+  // after the move. Returns how long (ms) until everything has settled.
+  function animateMove(before, row, col) {
+    const placed = row * SIZE + col;
+    const player = state.board[row][col];
+    Sound.place();
+
+    const flipped = [];
+    cells.forEach((_, i) => {
+      const r = Math.floor(i / SIZE);
+      const c = i % SIZE;
+      if (i !== placed && before[r][c] !== state.board[r][c]) {
+        flipped.push({ i, distance: Math.max(Math.abs(r - row), Math.abs(c - col)) });
+      }
+    });
+    flipped.sort((a, b) => a.distance - b.distance);
+
+    const motion = !reduceMotion.matches;
+    if (motion) startAnimation(cells[placed].disc, "pop", 0);
+
+    let settle = 0;
+    flipped.forEach(({ i, distance }, order) => {
+      const delay = motion ? 120 + (distance - 1) * RIPPLE_MS : 0;
+      if (motion) startAnimation(cells[i].disc, `flip-to-${player}`, delay);
+      Sound.flip(order, delay + (motion ? FLIP_MS / 2 : 60 * order));
+      settle = Math.max(settle, delay + FLIP_MS);
+    });
+    return motion ? settle : 0;
+  }
+
+  function startAnimation(disc, name, delayMs) {
+    disc.classList.remove(...ANIMATION_CLASSES);
+    void disc.offsetWidth; // restart even if the same animation is still running
+    disc.style.setProperty("--delay", `${delayMs}ms`);
+    disc.classList.add(name);
   }
 
   function play(index) {
@@ -95,16 +133,37 @@
     const col = index % SIZE;
     const next = Reversi.playTurn(state, row, col);
     if (next === state) {
-      if (!state.gameOver && state.board[row][col] === null) shake(cells[index].button);
+      if (!state.gameOver && state.board[row][col] === null) {
+        shake(cells[index].button);
+        Sound.invalid();
+      }
       return;
     }
+    const before = state.board;
     state = next;
     render();
+    const settleMs = animateMove(before, row, col);
+    announce(settleMs);
+  }
+
+  // Once the flips have finished: tell players about a forced pass, or show the result.
+  function announce(delayMs) {
+    clearTimeout(announceTimer);
+    if (!state.passed && !state.gameOver) return;
+    announceTimer = setTimeout(() => {
+      if (state.gameOver) {
+        Sound.gameOver(state.winner === "draw");
+        showBanner();
+      } else {
+        Sound.pass();
+        showToast(`${NAMES[state.passed]} has no moves — ${NAMES[state.currentPlayer]} goes again!`);
+      }
+    }, delayMs);
   }
 
   function shake(button) {
     button.classList.remove("nope");
-    void button.offsetWidth; // restart the animation if it's already running
+    void button.offsetWidth;
     button.classList.add("nope");
   }
 
@@ -133,7 +192,9 @@
   function newGame() {
     resetConfirm();
     hideToast();
+    clearTimeout(announceTimer);
     bannerEl.hidden = true;
+    for (const { disc } of cells) disc.classList.remove(...ANIMATION_CLASSES);
     state = Reversi.createGame();
     const [row, col] = state.validMoves[0];
     focusIndex = row * SIZE + col;
@@ -145,7 +206,8 @@
     const inProgress = !state.gameOver && state.blackCount + state.whiteCount > 4;
     if (inProgress && !newGameBtn.classList.contains("confirming")) {
       newGameBtn.classList.add("confirming");
-      newGameBtn.textContent = "Tap again to restart";
+      newGameBtn.textContent = "Tap again";
+      newGameBtn.setAttribute("aria-label", "Tap again to restart the game");
       confirmTimer = setTimeout(resetConfirm, CONFIRM_MS);
       return;
     }
@@ -156,6 +218,13 @@
     clearTimeout(confirmTimer);
     newGameBtn.classList.remove("confirming");
     newGameBtn.textContent = "New game";
+    newGameBtn.removeAttribute("aria-label");
+  }
+
+  function showMuted() {
+    const muted = Sound.isMuted();
+    muteBtn.setAttribute("aria-pressed", String(muted));
+    muteBtn.title = muted ? "Sound off" : "Sound on";
   }
 
   const ARROW_STEPS = {
@@ -184,14 +253,27 @@
     play(focusIndex);
   }
 
+  // Clear finished animation classes so the next flip of the same disc starts fresh.
+  function onAnimationEnd(event) {
+    if (event.target.classList.contains("disc")) {
+      event.target.classList.remove(...ANIMATION_CLASSES);
+    }
+  }
+
   boardEl.addEventListener("click", onBoardClick);
   boardEl.addEventListener("keydown", onBoardKey);
+  boardEl.addEventListener("animationend", onAnimationEnd);
   newGameBtn.addEventListener("click", onNewGameClick);
+  muteBtn.addEventListener("click", () => {
+    Sound.setMuted(!Sound.isMuted());
+    showMuted();
+  });
   playAgainBtn.addEventListener("click", () => {
     newGame();
     cells[focusIndex].button.focus();
   });
 
   buildBoard();
+  showMuted();
   newGame();
 })();

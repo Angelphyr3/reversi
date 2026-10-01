@@ -24,6 +24,17 @@
         Reversi
       </h1>
 
+      <button type="button" class="btn btn-quiet icon-btn" id="mute" aria-label="Mute sounds" aria-pressed="false">
+        <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9h4l5-4v14l-5-4H4z" />
+          <path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+        </svg>
+        <svg class="icon-sound-off" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9h4l5-4v14l-5-4H4z" />
+          <path class="wave" d="M16.5 9.5l5 5M21.5 9.5l-5 5" />
+        </svg>
+      </button>
+
       <div class="scores">
         <div class="score" id="score-black">
           <span class="disc-icon" data-color="black" aria-hidden="true"></span>
@@ -61,6 +72,7 @@
   </main>
 
   <script src="game.js"></script>
+  <script src="sound.js"></script>
   <script src="ui.js"></script>
 </body>
 </html>

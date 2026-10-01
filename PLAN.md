@@ -2,7 +2,7 @@
 
 A browser-based version of the board game Reversi (Othello).
 
-Status: **milestone 2 done** (playable two-player game). Decisions get recorded here as we make them.
+Status: **milestone 3 done** (animations and sound). Decisions get recorded here as we make them.
 
 ## The game (rules we're implementing)
 
@@ -41,7 +41,8 @@ reversi/
 ├── index.html    # board container, score/turn display, controls
 ├── styles.css    # board grid, disc styling, highlight states
 ├── game.js       # core game logic — pure functions, no DOM
-├── ui.js         # rendering + event handlers; calls into game.js
+├── sound.js      # sound effects, synthesized with Web Audio (no audio files)
+├── ui.js         # rendering + event handlers; calls into game.js and sound.js
 ├── ai.js         # phase 2: computer opponent
 └── tests/
     └── game.test.js
@@ -54,7 +55,7 @@ which needs to simulate moves without touching the screen.
 
 ES modules (`<script type="module">`) do not load when `index.html` is opened by double-clicking
 it — browsers block module imports from `file://` pages. To keep "just open index.html" working,
-the files load as classic scripts in order (`game.js`, `ai.js`, `ui.js`) and share a single global
+the files load as classic scripts in order (`game.js`, `sound.js`, `ai.js`, `ui.js`) and share a single global
 namespace object. `game.js` ends with a small guard that also exports its functions when running in
 Node, so the tests can load it without a browser:
 
@@ -173,7 +174,7 @@ Changes made to the spec drafted in chat, and why:
   labeled "Computer".
 - **Sounds:** generated in code with the browser's Web Audio API — a soft click for placing a disc,
   a quick tick for each flip, and a short jingle at game end. No audio files to download or license.
-  A mute button sits in the corner. (Browsers only allow sound after the first tap/click, which is
+  A mute button sits in the corner beside the title, and the choice is remembered in the browser. (Browsers only allow sound after the first tap/click, which is
   fine since nothing plays before the first move.)
 
 ## Computer opponent
@@ -244,8 +245,11 @@ leaves very little to attack, and these rules keep it that way.
    Done: tested on desktop, phone (portrait and sideways), light and dark mode, keyboard, and
    40 complete games played through the real buttons. All text meets WCAG AA contrast.
    "New game" mid-game asks for a second tap, since there's no undo.
-3. **Animations and sound** — disc pop and flip animations, Web Audio sounds, mute button,
+3. ✅ **Animations and sound** — disc pop and flip animations, Web Audio sounds, mute button,
    reduced-motion support.
+   Done: placed discs pop in; captured discs coin-flip in a ripple outward from the move, with a
+   rising tick per flip. Sounds for placing, flipping, an illegal tap, a pass and the game end.
+   Pass messages and the game-over banner wait until the flips finish.
 4. **Computer opponent** — `ai.js` with the four difficulty levels, a mode/difficulty selector,
    and a short "thinking" delay.
 5. **Publish** — security checklist, noreply commit email, create the GitHub repo, branch

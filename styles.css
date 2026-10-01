@@ -23,6 +23,11 @@
   --star: #154d2f;
   --shadow: rgba(28, 48, 36, 0.28);
   --backdrop: rgba(244, 240, 230, 0.55);
+
+  /* Disc faces look the same in both modes. */
+  --face-black: radial-gradient(circle at 34% 28%, #6a6a6a, #222 42%, #070707 100%);
+  --face-white: radial-gradient(circle at 34% 28%, #ffffff, #f2f2ec 45%, #c4c4b8 100%);
+  --flip-ms: 380ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -100,7 +105,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-areas:
-    "title  title"
+    "title  mute"
     "scores scores"
     "turn   button";
   align-items: center;
@@ -120,8 +125,8 @@ body {
   .panel {
     width: var(--panel-width);
     min-width: 0;
-    grid-template-columns: 1fr;
-    grid-template-areas: "title" "scores" "turn" "button";
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "title mute" "scores scores" "turn turn" "button button";
     gap: 16px;
   }
 
@@ -214,9 +219,53 @@ body {
   justify-self: end;
 }
 
+#mute {
+  grid-area: mute;
+  justify-self: end;
+}
+
 @media (min-aspect-ratio: 1/1) and (min-width: 600px) {
   #new-game {
     justify-self: stretch;
+  }
+}
+
+/* Labels stay on one line; on the narrowest phones everything tightens up to fit. */
+.score-name,
+.turn,
+.btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 380px) {
+  .scores {
+    gap: 8px;
+  }
+
+  .score {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .score .disc-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .score-name {
+    font-size: 0.9rem;
+  }
+
+  .score-count {
+    font-size: 1.4rem;
+  }
+
+  .turn {
+    font-size: 0.95rem;
+  }
+
+  #new-game {
+    padding: 10px 16px;
   }
 }
 
@@ -268,6 +317,35 @@ body {
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
+/* Round mute button; shows the speaker-with-waves or speaker-with-cross icon. */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  flex: none;
+}
+
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-btn .wave {
+  fill: none;
+}
+
+.icon-btn[aria-pressed="true"] .icon-sound-on,
+.icon-btn[aria-pressed="false"] .icon-sound-off {
+  display: none;
+}
+
 /* ---------- Discs (shared by the board and the small icons) ---------- */
 
 .disc-icon {
@@ -285,12 +363,12 @@ body {
 
 .disc-icon[data-color="black"],
 .disc[data-color="black"] {
-  background: radial-gradient(circle at 34% 28%, #6a6a6a, #222 42%, #070707 100%);
+  background: var(--face-black);
 }
 
 .disc-icon[data-color="white"],
 .disc[data-color="white"] {
-  background: radial-gradient(circle at 34% 28%, #ffffff, #f2f2ec 45%, #c4c4b8 100%);
+  background: var(--face-white);
 }
 
 /* ---------- Board ---------- */
@@ -392,6 +470,43 @@ body {
     transform: scale(3.1);
     opacity: 0.75;
   }
+}
+
+/* ---------- Disc animations ---------- */
+
+/* A newly placed disc drops in with a little bounce. */
+.disc.pop {
+  animation: pop 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pop {
+  from { transform: scale(0.2); opacity: 0; }
+  60% { transform: scale(1.14); opacity: 1; }
+  to { transform: scale(1); }
+}
+
+/* Captured discs flip like a coin: turn edge-on, swap color, turn back face-up. --delay makes
+   the flips ripple outward from the placed disc (set per disc by ui.js). */
+.disc.flip-to-black {
+  animation: flip-to-black var(--flip-ms) var(--delay, 0ms) both;
+}
+
+.disc.flip-to-white {
+  animation: flip-to-white var(--flip-ms) var(--delay, 0ms) both;
+}
+
+@keyframes flip-to-black {
+  0%     { transform: perspective(300px) rotateY(0deg); background: var(--face-white); animation-timing-function: ease-in; }
+  49.99% { transform: perspective(300px) rotateY(90deg) scale(1.15); background: var(--face-white); }
+  50%    { transform: perspective(300px) rotateY(-90deg) scale(1.15); background: var(--face-black); animation-timing-function: ease-out; }
+  100%   { transform: perspective(300px) rotateY(0deg); background: var(--face-black); }
+}
+
+@keyframes flip-to-white {
+  0%     { transform: perspective(300px) rotateY(0deg); background: var(--face-black); animation-timing-function: ease-in; }
+  49.99% { transform: perspective(300px) rotateY(90deg) scale(1.15); background: var(--face-black); }
+  50%    { transform: perspective(300px) rotateY(-90deg) scale(1.15); background: var(--face-white); animation-timing-function: ease-out; }
+  100%   { transform: perspective(300px) rotateY(0deg); background: var(--face-white); }
 }
 
 /* A little shake when an illegal square is tapped. */
