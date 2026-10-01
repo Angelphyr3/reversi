@@ -2,7 +2,7 @@
 
 A browser-based version of the board game Reversi (Othello).
 
-Status: **planning** — no code yet. Decisions get recorded here as we make them.
+Status: **milestone 1 done** (game logic). Decisions get recorded here as we make them.
 
 ## The game (rules we're implementing)
 
@@ -235,8 +235,9 @@ leaves very little to attack, and these rules keep it that way.
 
 ## Milestones
 
-1. **Game logic** — `game.js` plus Node tests covering the starting position, flips in all
-   8 directions, illegal moves, a forced pass, and game end/draw.
+1. ✅ **Game logic** — `game.js` plus Node tests covering the starting position, flips in all
+   8 directions, illegal moves, a forced pass, and game end/draw. Done: 16 tests, run with
+   `node --test` from the `reversi` folder.
 2. **Playable two-player game** — `index.html`, `styles.css`, `ui.js`: responsive board, light and
    dark colors, click/tap to move, legal-move highlights, Player 1/Player 2 scores, turn indicator,
    pass message, game-over banner, new-game button.
