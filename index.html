@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Security: only this site's own scripts, styles and images may load, and the page may not
+       contact any server. See "Security" in PLAN.md. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Play Reversi in your browser — two players on one device.">
+  <title>Reversi</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="panel" aria-label="Game info">
+      <h1 class="title">
+        <span class="title-discs" aria-hidden="true">
+          <span class="disc-icon" data-color="black"></span><span class="disc-icon" data-color="white"></span>
+        </span>
+        Reversi
+      </h1>
+
+      <div class="scores">
+        <div class="score" id="score-black">
+          <span class="disc-icon" data-color="black" aria-hidden="true"></span>
+          <span class="score-name">Player 1</span>
+          <span class="score-count" id="count-black" aria-label="Player 1 discs">2</span>
+        </div>
+        <div class="score" id="score-white">
+          <span class="disc-icon" data-color="white" aria-hidden="true"></span>
+          <span class="score-name">Player 2</span>
+          <span class="score-count" id="count-white" aria-label="Player 2 discs">2</span>
+        </div>
+      </div>
+
+      <p class="turn" aria-live="polite">
+        <span class="disc-icon" id="turn-disc" data-color="black" aria-hidden="true"></span>
+        <span id="turn-text">Player 1's turn</span>
+      </p>
+
+      <button type="button" class="btn btn-quiet" id="new-game">New game</button>
+    </section>
+
+    <div class="board-frame">
+      <div class="board" id="board" role="group" aria-label="Board — use arrow keys to move, Enter to place a disc"></div>
+
+      <p class="toast" id="toast" role="status" hidden></p>
+
+      <div class="banner" id="banner" hidden>
+        <div class="banner-card" role="alertdialog" aria-labelledby="banner-title" aria-describedby="banner-score">
+          <p class="banner-title" id="banner-title"></p>
+          <p class="banner-score" id="banner-score"></p>
+          <button type="button" class="btn" id="play-again">Play again</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="game.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
