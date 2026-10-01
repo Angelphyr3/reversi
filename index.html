@@ -24,16 +24,24 @@
         Reversi
       </h1>
 
-      <button type="button" class="btn btn-quiet icon-btn" id="mute" aria-label="Mute sounds" aria-pressed="false">
-        <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 9h4l5-4v14l-5-4H4z" />
-          <path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
-        </svg>
-        <svg class="icon-sound-off" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 9h4l5-4v14l-5-4H4z" />
-          <path class="wave" d="M16.5 9.5l5 5M21.5 9.5l-5 5" />
-        </svg>
-      </button>
+      <div class="corner-buttons">
+        <button type="button" class="btn btn-quiet icon-btn" id="palette" aria-label="Color-blind friendly board" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path class="wave" d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+        <button type="button" class="btn btn-quiet icon-btn" id="mute" aria-label="Mute sounds" aria-pressed="false">
+          <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 9h4l5-4v14l-5-4H4z" />
+            <path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+          </svg>
+          <svg class="icon-sound-off" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 9h4l5-4v14l-5-4H4z" />
+            <path class="wave" d="M16.5 9.5l5 5M21.5 9.5l-5 5" />
+          </svg>
+        </button>
+      </div>
 
       <div class="scores">
         <div class="score" id="score-black">
@@ -92,6 +100,12 @@
         <label><input type="radio" name="level" value="medium"><span>Medium</span></label>
         <label><input type="radio" name="level" value="hard"><span>Hard</span></label>
         <label><input type="radio" name="level" value="expert"><span>Expert</span></label>
+      </fieldset>
+
+      <fieldset class="choice" id="hints-choice">
+        <legend>Available moves</legend>
+        <label><input type="radio" name="hints" value="show"><span>Show</span></label>
+        <label><input type="radio" name="hints" value="hide"><span>Hide</span></label>
       </fieldset>
 
       <p class="setup-note" id="setup-note"></p>

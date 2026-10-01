@@ -29,7 +29,8 @@ Status: **milestone 4 done** (computer opponent). Next: publish. Decisions get r
 | Undo | **No** |
 | Score display | "Player 1" (black) and "Player 2" (white) with live disc counts |
 | Turn indicator | Yes — clearly shows whose turn it is |
-| Legal-move hints | Yes (the architecture provides it for free) |
+| Legal-move hints | Yes. Two-player games can hide them (setup card: Available moves → Show/Hide) |
+| Color-blind board | Eye button beside mute switches the felt to teal #40B0A6; remembered in the browser |
 | Sounds | Yes — with a mute button |
 | Flip animations | Yes |
 | Hosting / sharing | Public GitHub repository, played via GitHub Pages — see "Security" |
@@ -162,6 +163,9 @@ Changes made to the spec drafted in chat, and why:
   reads as a real game board but feels modern rather than old-fashioned.
 - **Discs:** glossy black and white with a subtle highlight. Placing one gives a little "pop";
   captured discs flip with a 3D coin-flip animation, rippling outward from the placed disc.
+- **Color-blind board:** the eye button switches the felt from green to teal (#40B0A6) in both light
+  and dark mode. White discs get a thin dark rim and hint dots a dark ring, so they still stand out
+  against the lighter teal (all measured at 3:1 or better).
 - **Playful touches:** bouncy hover/tap feedback on legal squares, a cheerful game-over banner.
   Animations are skipped for people whose device is set to "reduce motion".
 - **Light and dark mode:** all colors are defined once as named tokens with a light and a dark
@@ -174,7 +178,7 @@ Changes made to the spec drafted in chat, and why:
   panel is highlighted and there's a "Player 1's turn" label. Against the computer, Player 2 is
   labeled "Computer".
 - **Sounds:** generated in code with the browser's Web Audio API — a soft click for placing a disc,
-  a quick tick for each flip, and a short jingle at game end. No audio files to download or license.
+  a quick tick for each flip, a buzzy "eh-eh" for an illegal tap, and a short jingle at game end. No audio files to download or license.
   A mute button sits in the corner beside the title, and the choice is remembered in the browser. (Browsers only allow sound after the first tap/click, which is
   fine since nothing plays before the first move.)
 
@@ -242,6 +246,17 @@ leaves very little to attack, and these rules keep it that way.
 - **Review before merging.** Code from someone else's pull request only reaches your computer if
   you pull it — read the changes (or ask Claude to review them) first.
 - **Claude never pushes or publishes without asking you first.**
+
+## Changes before publishing
+
+Requested after milestone 4:
+
+- **Show/Hide available moves** for two-player games, in the setup card.
+- **Illegal-tap sound** changed from a soft low buzz to a two-pulse error buzzer — measured slightly
+  quieter (−41 dB vs −37 dB at its loudest), but a more distinct tone.
+- **Color-blind board** (teal #40B0A6), toggled with the eye button.
+- The hint dots on the standard green board measured only ~2:1 contrast (missed in milestone 2);
+  they were darkened/brightened to pass 3:1.
 
 ## Open questions
 

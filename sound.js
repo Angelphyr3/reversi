@@ -69,9 +69,13 @@ const Sound = (() => {
       tone({ from: pitch, to: pitch * 1.4, start: delayMs / 1000, length: 0.07, volume: 0.12 });
     },
 
-    // A quiet low buzz for tapping a square that isn't a legal move.
+    // A buzzy "eh-eh" for tapping a square that isn't a legal move: two clashing low notes,
+    // played twice, like an error buzzer. Kept quiet so it warns without startling.
     invalid() {
-      tone({ type: "square", from: 150, to: 110, length: 0.1, volume: 0.04 });
+      for (const start of [0, 0.12]) {
+        tone({ type: "sawtooth", from: 196, to: 185, start, length: 0.085, volume: 0.03 });
+        tone({ type: "sawtooth", from: 208, to: 196, start, length: 0.085, volume: 0.03 });
+      }
     },
 
     // A two-note "uh-oh" when a player has to pass.

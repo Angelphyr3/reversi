@@ -13,7 +13,9 @@
   const THINK_MS = 650; // pause before the computer moves, so players can follow along
   const ANIMATION_CLASSES = ["pop", "flip-to-black", "flip-to-white"];
   const SETTINGS_KEY = "reversi-settings";
+  const PALETTE_KEY = "reversi-palette";
   const MODES = ["two", "computer"];
+  const HINTS = ["show", "hide"];
   const LEVEL_NAMES = { easy: "Easy", medium: "Medium", hard: "Hard", expert: "Expert" };
 
   const $ = (id) => document.getElementById(id);
@@ -33,8 +35,10 @@
   const changeGameBtn = $("change-game");
   const newGameBtn = $("new-game");
   const muteBtn = $("mute");
+  const paletteBtn = $("palette");
   const setupEl = $("setup");
   const levelChoice = $("level-choice");
+  const hintsChoice = $("hints-choice");
   const setupNote = $("setup-note");
   const setupCancel = $("setup-cancel");
   const setupStart = $("setup-start");
@@ -52,16 +56,38 @@
   // ---------- Settings (remembered in this browser) ----------
 
   function loadSettings() {
-    const fallback = { mode: "computer", level: "medium" };
+    const fallback = { mode: "computer", level: "medium", hints: "show" };
     try {
       const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
       // Only accept known values — never trust what's in storage.
       return {
         mode: MODES.includes(saved?.mode) ? saved.mode : fallback.mode,
         level: ReversiAI.LEVELS.includes(saved?.level) ? saved.level : fallback.level,
+        hints: HINTS.includes(saved?.hints) ? saved.hints : fallback.hints,
       };
     } catch {
       return fallback;
+    }
+  }
+
+  // The color-blind board is a display preference for this browser, separate from game settings.
+  function loadPalette() {
+    try {
+      return localStorage.getItem(PALETTE_KEY) === "colorblind";
+    } catch {
+      return false;
+    }
+  }
+
+  function setPalette(colorblind) {
+    if (colorblind) document.documentElement.dataset.palette = "colorblind";
+    else delete document.documentElement.dataset.palette;
+    paletteBtn.setAttribute("aria-pressed", String(colorblind));
+    paletteBtn.title = colorblind ? "Color-blind friendly board: on" : "Color-blind friendly board: off";
+    try {
+      localStorage.setItem(PALETTE_KEY, colorblind ? "colorblind" : "standard");
+    } catch {
+      // not remembered this time; harmless
     }
   }
 
@@ -114,8 +140,10 @@
 
   function render() {
     const waiting = computersTurn();
-    // The computer's possible moves aren't hinted — only the person's.
-    const legal = new Set(waiting ? [] : state.validMoves.map(([r, c]) => r * SIZE + c));
+    // Hints show the person's moves only — never the computer's — and two players can turn
+    // them off in the setup card.
+    const showHints = !waiting && (vsComputer() || game.hints === "show");
+    const legal = new Set(showHints ? state.validMoves.map(([r, c]) => r * SIZE + c) : []);
 
     cells.forEach(({ button, disc }, i) => {
       const row = Math.floor(i / SIZE);
@@ -316,6 +344,7 @@
   function showSetupChoices() {
     const mode = setupEl.querySelector('input[name="mode"]:checked').value;
     levelChoice.hidden = mode !== "computer";
+    hintsChoice.hidden = mode === "computer";
     setupNote.textContent =
       mode === "computer" ? "You play black and go first." : "Take turns on this device. Black goes first.";
   }
@@ -324,6 +353,7 @@
     settings = {
       mode: setupEl.querySelector('input[name="mode"]:checked').value,
       level: setupEl.querySelector('input[name="level"]:checked').value,
+      hints: setupEl.querySelector('input[name="hints"]:checked').value,
     };
     saveSettings();
     closeSetup();
@@ -387,6 +417,9 @@
     newGame();
     cells[focusIndex].button.focus();
   });
+  paletteBtn.addEventListener("click", () => {
+    setPalette(paletteBtn.getAttribute("aria-pressed") !== "true");
+  });
   muteBtn.addEventListener("click", () => {
     Sound.setMuted(!Sound.isMuted());
     showMuted();
@@ -398,6 +431,7 @@
     if (event.key === "Escape" && !setupCancel.hidden) onSetupCancel();
   });
 
+  setPalette(loadPalette());
   buildBoard();
   showMuted();
   newGame();

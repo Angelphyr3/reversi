@@ -21,6 +21,9 @@
   --frame: #164a2e;
   --frame-light: #22663f;
   --star: #154d2f;
+  --hint-black: rgba(0, 0, 0, 0.55);
+  --hint-white: rgba(255, 255, 255, 0.95);
+  --hint-ring: none;
   --shadow: rgba(28, 48, 36, 0.28);
   --backdrop: rgba(244, 240, 230, 0.55);
 
@@ -54,6 +57,34 @@
     --star: #0f3d23;
     --shadow: rgba(0, 0, 0, 0.55);
     --backdrop: rgba(14, 22, 18, 0.6);
+  }
+}
+
+/* Color-blind friendly board: teal felt (#40B0A6) in both light and dark mode, switched on with
+   the eye button. Only the board changes; the page around it keeps its colors. */
+:root[data-palette="colorblind"] {
+  --felt: #40b0a6;
+  --felt-glow: #52beb4;
+  --felt-line: #2b8a81;
+  --frame: #17605a;
+  --frame-light: #24807a;
+  --star: #1d6b64;
+  --focus-board: #0d2b45;
+  --hint-black: rgba(0, 0, 0, 0.55);
+  --hint-white: rgba(255, 255, 255, 0.9);
+  --hint-ring: 0 0 0 2px rgba(13, 43, 69, 0.75);
+}
+
+/* White discs are lighter against teal, so they get a thin dark rim to stand out. */
+:root[data-palette="colorblind"] .disc[data-color="white"] {
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.55), 0 3px 5px rgba(0, 0, 0, 0.4),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="colorblind"] {
+    --frame: #0e3f3b;
+    --frame-light: #175a55;
   }
 }
 
@@ -219,9 +250,11 @@ body {
   justify-self: end;
 }
 
-#mute {
+.corner-buttons {
   grid-area: mute;
   justify-self: end;
+  display: flex;
+  gap: 8px;
 }
 
 @media (min-aspect-ratio: 1/1) and (min-width: 600px) {
@@ -333,6 +366,12 @@ body {
 
 .icon-btn .wave {
   fill: none;
+}
+
+#palette[aria-pressed="true"] {
+  background: var(--btn-bg);
+  border-color: var(--btn-bg);
+  color: var(--btn-text);
 }
 
 .icon-btn[aria-pressed="true"] .icon-sound-on,
@@ -447,15 +486,16 @@ body {
   width: 26%;
   height: 26%;
   border-radius: 50%;
+  box-shadow: var(--hint-ring);
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
 }
 
 .board[data-turn="black"] .cell.legal::after {
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--hint-black);
 }
 
 .board[data-turn="white"] .cell.legal::after {
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--hint-white);
 }
 
 /* On devices with a mouse, hovering a legal square previews the disc. */
