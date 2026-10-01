@@ -9,7 +9,7 @@
         content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="Play Reversi in your browser — two players on one device.">
+  <meta name="description" content="Play Reversi in your browser — against a friend or the computer.">
   <title>Reversi</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
@@ -38,13 +38,13 @@
       <div class="scores">
         <div class="score" id="score-black">
           <span class="disc-icon" data-color="black" aria-hidden="true"></span>
-          <span class="score-name">Player 1</span>
-          <span class="score-count" id="count-black" aria-label="Player 1 discs">2</span>
+          <span class="score-name" id="name-black">Player 1</span>
+          <span class="score-count" id="count-black">2</span>
         </div>
         <div class="score" id="score-white">
           <span class="disc-icon" data-color="white" aria-hidden="true"></span>
-          <span class="score-name">Player 2</span>
-          <span class="score-count" id="count-white" aria-label="Player 2 discs">2</span>
+          <span class="score-name" id="name-white">Player 2</span>
+          <span class="score-count" id="count-white">2</span>
         </div>
       </div>
 
@@ -65,14 +65,47 @@
         <div class="banner-card" role="alertdialog" aria-labelledby="banner-title" aria-describedby="banner-score">
           <p class="banner-title" id="banner-title"></p>
           <p class="banner-score" id="banner-score"></p>
-          <button type="button" class="btn" id="play-again">Play again</button>
+          <div class="actions">
+            <button type="button" class="btn btn-quiet" id="change-game">Change game</button>
+            <button type="button" class="btn" id="play-again">Play again</button>
+          </div>
         </div>
       </div>
     </div>
   </main>
 
+  <!-- New-game setup: choose an opponent and difficulty. Covers the whole screen so it fits on
+       the smallest phones. -->
+  <div class="setup" id="setup" hidden>
+    <div class="banner-card setup-card" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+      <p class="banner-title" id="setup-title">New game</p>
+
+      <fieldset class="choice">
+        <legend>Play against</legend>
+        <label><input type="radio" name="mode" value="two"><span>A friend</span></label>
+        <label><input type="radio" name="mode" value="computer"><span>The computer</span></label>
+      </fieldset>
+
+      <fieldset class="choice" id="level-choice">
+        <legend>Difficulty</legend>
+        <label><input type="radio" name="level" value="easy"><span>Easy</span></label>
+        <label><input type="radio" name="level" value="medium"><span>Medium</span></label>
+        <label><input type="radio" name="level" value="hard"><span>Hard</span></label>
+        <label><input type="radio" name="level" value="expert"><span>Expert</span></label>
+      </fieldset>
+
+      <p class="setup-note" id="setup-note"></p>
+
+      <div class="actions">
+        <button type="button" class="btn btn-quiet" id="setup-cancel">Cancel</button>
+        <button type="button" class="btn" id="setup-start">Start</button>
+      </div>
+    </div>
+  </div>
+
   <script src="game.js"></script>
   <script src="sound.js"></script>
+  <script src="ai.js"></script>
   <script src="ui.js"></script>
 </body>
 </html>

@@ -232,7 +232,6 @@ body {
 
 /* Labels stay on one line; on the narrowest phones everything tightens up to fit. */
 .score-name,
-.turn,
 .btn {
   white-space: nowrap;
 }
@@ -310,11 +309,6 @@ body {
 .btn-quiet:hover {
   background: var(--btn-quiet-bg);
   border-color: var(--btn-quiet-text);
-}
-
-.btn-quiet.confirming {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
 /* Round mute button; shows the speaker-with-waves or speaker-with-cross icon. */
@@ -585,6 +579,117 @@ body {
   font-weight: 700;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* ---------- Computer's turn ---------- */
+
+.board.waiting .cell {
+  cursor: progress;
+}
+
+.turn.thinking .disc-icon {
+  animation: thinking 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes thinking {
+  to { transform: scale(1.35); }
+}
+
+/* ---------- New-game setup ---------- */
+
+.setup {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--backdrop);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.setup-card {
+  width: min(100%, 420px);
+  gap: 16px;
+  padding: 22px 20px;
+}
+
+/* Choices look like pill buttons; underneath they're ordinary radio buttons, so keyboards and
+   screen readers handle them for free. */
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice legend {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.choice label {
+  position: relative;
+}
+
+.choice input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.choice span {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 2px solid var(--surface-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.choice label:hover span {
+  border-color: var(--btn-quiet-text);
+}
+
+.choice input:checked + span {
+  background: var(--btn-bg);
+  border-color: var(--btn-bg);
+  color: var(--btn-text);
+  transform: scale(1.05);
+}
+
+.choice input:focus-visible + span {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.setup-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 /* ---------- Respect "reduce motion" ---------- */

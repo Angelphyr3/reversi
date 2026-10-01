@@ -1,22 +1,28 @@
-// Draws the game and handles clicks, taps and keys. All rules live in game.js — this file only
-// asks it what's legal and shows the result. Text is always set with textContent, never
-// innerHTML (see "Security" in PLAN.md).
+// Draws the game and handles clicks, taps and keys. All rules live in game.js and the computer
+// opponent in ai.js — this file only asks them what to do and shows the result. Text is always
+// set with textContent, never innerHTML (see "Security" in PLAN.md).
 (() => {
   "use strict";
 
   const { SIZE, BLACK, WHITE } = Reversi;
-  const NAMES = { [BLACK]: "Player 1", [WHITE]: "Player 2" };
+  const COMPUTER = WHITE; // the person always plays black and moves first
   const COLUMNS = "ABCDEFGH";
   const TOAST_MS = 2600;
-  const CONFIRM_MS = 3000;
   const FLIP_MS = 380; // keep in sync with --flip-ms in styles.css
   const RIPPLE_MS = 70; // extra delay per square of distance from the placed disc
+  const THINK_MS = 650; // pause before the computer moves, so players can follow along
   const ANIMATION_CLASSES = ["pop", "flip-to-black", "flip-to-white"];
+  const SETTINGS_KEY = "reversi-settings";
+  const MODES = ["two", "computer"];
+  const LEVEL_NAMES = { easy: "Easy", medium: "Medium", hard: "Hard", expert: "Expert" };
 
   const $ = (id) => document.getElementById(id);
+  const appEl = document.querySelector(".app");
   const boardEl = $("board");
+  const nameEls = { [BLACK]: $("name-black"), [WHITE]: $("name-white") };
   const scoreEls = { [BLACK]: $("score-black"), [WHITE]: $("score-white") };
   const countEls = { [BLACK]: $("count-black"), [WHITE]: $("count-white") };
+  const turnEl = document.querySelector(".turn");
   const turnDisc = $("turn-disc");
   const turnText = $("turn-text");
   const toastEl = $("toast");
@@ -24,16 +30,60 @@
   const bannerTitle = $("banner-title");
   const bannerScore = $("banner-score");
   const playAgainBtn = $("play-again");
+  const changeGameBtn = $("change-game");
   const newGameBtn = $("new-game");
   const muteBtn = $("mute");
+  const setupEl = $("setup");
+  const levelChoice = $("level-choice");
+  const setupNote = $("setup-note");
+  const setupCancel = $("setup-cancel");
+  const setupStart = $("setup-start");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const cells = []; // index = row * SIZE + col
+  let settings = loadSettings(); // what the setup card shows; becomes `game` when a game starts
+  let game = settings; // the opponent and difficulty for the game being played
   let state;
   let focusIndex = 0; // the one board square reachable with Tab; arrows move it
   let toastTimer = null;
-  let confirmTimer = null;
   let announceTimer = null; // waits for animations to finish before a pass message or the banner
+  let computerTimer = null;
+
+  // ---------- Settings (remembered in this browser) ----------
+
+  function loadSettings() {
+    const fallback = { mode: "computer", level: "medium" };
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      // Only accept known values — never trust what's in storage.
+      return {
+        mode: MODES.includes(saved?.mode) ? saved.mode : fallback.mode,
+        level: ReversiAI.LEVELS.includes(saved?.level) ? saved.level : fallback.level,
+      };
+    } catch {
+      return fallback;
+    }
+  }
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      // not remembered this time; harmless
+    }
+  }
+
+  // ---------- Who's playing ----------
+
+  const vsComputer = () => game.mode === "computer";
+  const computersTurn = () => vsComputer() && !state.gameOver && state.currentPlayer === COMPUTER;
+
+  function nameOf(player) {
+    if (player === BLACK) return "Player 1";
+    return vsComputer() ? "Computer" : "Player 2";
+  }
+
+  // ---------- Drawing ----------
 
   function buildBoard() {
     for (let row = 0; row < SIZE; row++) {
@@ -58,12 +108,14 @@
 
   function cellLabel(row, col, color, legal) {
     const square = `${COLUMNS[col]}${row + 1}`;
-    if (color) return `${square}, ${NAMES[color]}`;
+    if (color) return `${square}, ${nameOf(color)}`;
     return legal ? `${square}, empty, legal move` : `${square}, empty`;
   }
 
   function render() {
-    const legal = new Set(state.validMoves.map(([r, c]) => r * SIZE + c));
+    const waiting = computersTurn();
+    // The computer's possible moves aren't hinted — only the person's.
+    const legal = new Set(waiting ? [] : state.validMoves.map(([r, c]) => r * SIZE + c));
 
     cells.forEach(({ button, disc }, i) => {
       const row = Math.floor(i / SIZE);
@@ -75,19 +127,27 @@
       button.tabIndex = i === focusIndex ? 0 : -1;
     });
     boardEl.dataset.turn = state.currentPlayer;
+    boardEl.classList.toggle("waiting", waiting);
 
     for (const player of [BLACK, WHITE]) {
+      nameEls[player].textContent = nameOf(player);
       scoreEls[player].classList.toggle("active", !state.gameOver && state.currentPlayer === player);
     }
     countEls[BLACK].textContent = state.blackCount;
     countEls[WHITE].textContent = state.whiteCount;
+    countEls[BLACK].setAttribute("aria-label", `${nameOf(BLACK)}: ${state.blackCount} discs`);
+    countEls[WHITE].setAttribute("aria-label", `${nameOf(WHITE)}: ${state.whiteCount} discs`);
 
+    turnEl.classList.toggle("thinking", waiting);
     if (state.gameOver) {
       turnDisc.dataset.color = "";
       turnText.textContent = "Game over";
+    } else if (waiting) {
+      turnDisc.dataset.color = COMPUTER;
+      turnText.textContent = "Computer is thinking…";
     } else {
       turnDisc.dataset.color = state.currentPlayer;
-      turnText.textContent = `${NAMES[state.currentPlayer]}'s turn`;
+      turnText.textContent = `${nameOf(state.currentPlayer)}'s turn`;
     }
   }
 
@@ -128,22 +188,40 @@
     disc.classList.add(name);
   }
 
+  // ---------- Moves ----------
+
+  // A person's click or tap. Illegal squares shake; clicks during the computer's turn are ignored.
   function play(index) {
+    if (computersTurn()) return;
     const row = Math.floor(index / SIZE);
     const col = index % SIZE;
-    const next = Reversi.playTurn(state, row, col);
-    if (next === state) {
+    if (!Reversi.isValidMove(state.board, row, col, state.currentPlayer) || state.gameOver) {
       if (!state.gameOver && state.board[row][col] === null) {
         shake(cells[index].button);
         Sound.invalid();
       }
       return;
     }
+    makeMove(row, col);
+  }
+
+  function makeMove(row, col) {
     const before = state.board;
-    state = next;
+    state = Reversi.playTurn(state, row, col);
     render();
     const settleMs = animateMove(before, row, col);
     announce(settleMs);
+    // If the person just had to pass, give them a moment to read the message first.
+    scheduleComputer(settleMs + (state.passed ? TOAST_MS / 2 : 0));
+  }
+
+  function scheduleComputer(afterMs) {
+    clearTimeout(computerTimer);
+    if (!computersTurn()) return;
+    computerTimer = setTimeout(() => {
+      const move = ReversiAI.chooseMove(state, game.level);
+      if (move) makeMove(move[0], move[1]);
+    }, afterMs + THINK_MS);
   }
 
   // Once the flips have finished: tell players about a forced pass, or show the result.
@@ -156,7 +234,7 @@
         showBanner();
       } else {
         Sound.pass();
-        showToast(`${NAMES[state.passed]} has no moves — ${NAMES[state.currentPlayer]} goes again!`);
+        showToast(`${nameOf(state.passed)} has no moves — ${nameOf(state.currentPlayer)} goes again!`);
       }
     }, delayMs);
   }
@@ -166,6 +244,8 @@
     void button.offsetWidth;
     button.classList.add("nope");
   }
+
+  // ---------- Messages ----------
 
   function showToast(text) {
     clearTimeout(toastTimer);
@@ -181,51 +261,83 @@
 
   function showBanner() {
     hideToast();
-    bannerTitle.textContent =
-      state.winner === "draw" ? "It's a draw!" : `${NAMES[state.winner]} wins!`;
-    bannerScore.textContent =
-      `${NAMES[BLACK]} ${state.blackCount} – ${state.whiteCount} ${NAMES[WHITE]}`;
+    if (state.winner === "draw") {
+      bannerTitle.textContent = "It's a draw!";
+    } else if (vsComputer()) {
+      bannerTitle.textContent = state.winner === COMPUTER ? "The computer wins!" : "You win! 🎉";
+    } else {
+      bannerTitle.textContent = `${nameOf(state.winner)} wins!`;
+    }
+    const whiteName = vsComputer() ? `${nameOf(WHITE)} (${LEVEL_NAMES[game.level]})` : nameOf(WHITE);
+    bannerScore.textContent = `${nameOf(BLACK)} ${state.blackCount} – ${state.whiteCount} ${whiteName}`;
     bannerEl.hidden = false;
+    boardEl.inert = true;
     playAgainBtn.focus();
   }
 
+  // ---------- Starting games ----------
+
   function newGame() {
-    resetConfirm();
     hideToast();
     clearTimeout(announceTimer);
+    clearTimeout(computerTimer);
     bannerEl.hidden = true;
+    boardEl.inert = false;
     for (const { disc } of cells) disc.classList.remove(...ANIMATION_CLASSES);
+    game = { ...settings };
     state = Reversi.createGame();
     const [row, col] = state.validMoves[0];
     focusIndex = row * SIZE + col;
     render();
   }
 
-  // There's no undo, so restarting mid-game asks for a second tap first.
-  function onNewGameClick() {
-    const inProgress = !state.gameOver && state.blackCount + state.whiteCount > 4;
-    if (inProgress && !newGameBtn.classList.contains("confirming")) {
-      newGameBtn.classList.add("confirming");
-      newGameBtn.textContent = "Tap again";
-      newGameBtn.setAttribute("aria-label", "Tap again to restart the game");
-      confirmTimer = setTimeout(resetConfirm, CONFIRM_MS);
-      return;
+  function gameInProgress() {
+    return state && !state.gameOver && state.blackCount + state.whiteCount > 4;
+  }
+
+  function openSetup() {
+    clearTimeout(computerTimer); // the computer waits while the menu is open
+    for (const input of setupEl.querySelectorAll("input")) {
+      input.checked = input.value === settings[input.name];
     }
+    showSetupChoices();
+    setupCancel.hidden = !gameInProgress();
+    bannerEl.hidden = true;
+    setupEl.hidden = false;
+    appEl.inert = true;
+    setupEl.querySelector('input[name="mode"]:checked').focus();
+  }
+
+  function closeSetup() {
+    setupEl.hidden = true;
+    appEl.inert = false;
+  }
+
+  function showSetupChoices() {
+    const mode = setupEl.querySelector('input[name="mode"]:checked').value;
+    levelChoice.hidden = mode !== "computer";
+    setupNote.textContent =
+      mode === "computer" ? "You play black and go first." : "Take turns on this device. Black goes first.";
+  }
+
+  function onSetupStart() {
+    settings = {
+      mode: setupEl.querySelector('input[name="mode"]:checked').value,
+      level: setupEl.querySelector('input[name="level"]:checked').value,
+    };
+    saveSettings();
+    closeSetup();
     newGame();
+    cells[focusIndex].button.focus();
   }
 
-  function resetConfirm() {
-    clearTimeout(confirmTimer);
-    newGameBtn.classList.remove("confirming");
-    newGameBtn.textContent = "New game";
-    newGameBtn.removeAttribute("aria-label");
+  function onSetupCancel() {
+    closeSetup();
+    scheduleComputer(0);
+    newGameBtn.focus();
   }
 
-  function showMuted() {
-    const muted = Sound.isMuted();
-    muteBtn.setAttribute("aria-pressed", String(muted));
-    muteBtn.title = muted ? "Sound off" : "Sound on";
-  }
+  // ---------- Input ----------
 
   const ARROW_STEPS = {
     ArrowUp: [-1, 0],
@@ -260,20 +372,34 @@
     }
   }
 
+  function showMuted() {
+    const muted = Sound.isMuted();
+    muteBtn.setAttribute("aria-pressed", String(muted));
+    muteBtn.title = muted ? "Sound off" : "Sound on";
+  }
+
   boardEl.addEventListener("click", onBoardClick);
   boardEl.addEventListener("keydown", onBoardKey);
   boardEl.addEventListener("animationend", onAnimationEnd);
-  newGameBtn.addEventListener("click", onNewGameClick);
+  newGameBtn.addEventListener("click", openSetup);
+  changeGameBtn.addEventListener("click", openSetup);
+  playAgainBtn.addEventListener("click", () => {
+    newGame();
+    cells[focusIndex].button.focus();
+  });
   muteBtn.addEventListener("click", () => {
     Sound.setMuted(!Sound.isMuted());
     showMuted();
   });
-  playAgainBtn.addEventListener("click", () => {
-    newGame();
-    cells[focusIndex].button.focus();
+  setupEl.addEventListener("change", showSetupChoices);
+  setupStart.addEventListener("click", onSetupStart);
+  setupCancel.addEventListener("click", onSetupCancel);
+  setupEl.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !setupCancel.hidden) onSetupCancel();
   });
 
   buildBoard();
   showMuted();
   newGame();
+  openSetup();
 })();

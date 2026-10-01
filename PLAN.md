@@ -2,7 +2,7 @@
 
 A browser-based version of the board game Reversi (Othello).
 
-Status: **milestone 3 done** (animations and sound). Decisions get recorded here as we make them.
+Status: **milestone 4 done** (computer opponent). Next: publish. Decisions get recorded here as we make them.
 
 ## The game (rules we're implementing)
 
@@ -21,7 +21,7 @@ Status: **milestone 3 done** (animations and sound). Decisions get recorded here
 | Tech stack | Plain HTML/CSS/JS, no build step, no dependencies (same as doodle-pad) |
 | Script loading | Classic `<script>` tags, not ES modules — see "Script loading" below |
 | Testing | Node's built-in test runner (`node --test`), no packages to install |
-| Game modes | Phase 1: two players on one device. Phase 2: computer opponent |
+| Game modes | Two players on one device, or one player against the computer |
 | Computer opponent difficulty | Selectable levels: Easy, Medium, Hard, Expert — see "Computer opponent" |
 | Visual style | Classic green board, with a modern, playful finish — see "Look and feel" |
 | Light / dark mode | Follows the device setting; every color has a light and a dark version |
@@ -43,9 +43,10 @@ reversi/
 ├── game.js       # core game logic — pure functions, no DOM
 ├── sound.js      # sound effects, synthesized with Web Audio (no audio files)
 ├── ui.js         # rendering + event handlers; calls into game.js and sound.js
-├── ai.js         # phase 2: computer opponent
+├── ai.js         # computer opponent — pure functions, no DOM
 └── tests/
-    └── game.test.js
+    ├── game.test.js
+    └── ai.test.js
 ```
 
 `game.js` must stay pure (no DOM references) so it can be unit-tested in Node and reused by the AI,
@@ -179,18 +180,30 @@ Changes made to the spec drafted in chat, and why:
 
 ## Computer opponent
 
-The player picks a difficulty before starting. All levels use the same pure functions from
-`game.js` to explore moves.
+"New game" opens a setup card: play against a friend or the computer, and pick a difficulty. It
+also appears on first visit, with the last choices remembered in the browser. The person always
+plays black and moves first. While the computer "thinks" (a short pause so its move can be
+followed), the board is locked and no hints are shown.
+
+All levels use the same pure functions from `game.js` to try out moves.
 
 | Level | Strategy |
 | --- | --- |
 | Easy | Random legal move |
-| Medium | Greedy — the move that flips the most discs right now |
-| Hard | Position-weighted — values corners and edges, avoids squares next to empty corners |
-| Expert | Minimax look-ahead with alpha-beta pruning, using the position weights to score boards |
+| Medium | Greedy (most flips), plus the value of the square itself — grabs corners, avoids squares next to empty corners |
+| Hard | Looks 2 moves ahead (its move and the best reply), scoring positions by square values and how many moves each side has |
+| Expert | Looks 4–5 moves ahead with alpha-beta pruning; with 10 or fewer empty squares it searches to the end of the game and plays perfectly |
 
-The computer waits a short moment before moving so its move is visible. Expert's search depth is
-capped so it stays responsive on a phone.
+**Why Medium isn't pure greedy:** "flip the most discs" measured barely better than random
+(11 of 20 wins against Easy) — grabbing discs early tends to hand the opponent good squares.
+Adding square values fixed that.
+
+**Measured strength** (seeded test games, alternating colors): Medium beats Easy 86%, Hard beats
+Medium 92%, Expert beats Hard 97%, and Expert has never lost to Easy.
+
+**Speed:** Expert goes 5 moves deep only when the 4-move search examined fewer than 4,000
+positions, so crowded mid-game positions stay quick. Counting positions instead of time keeps its
+play identical on every device. On a desktop: typically ~35 ms per move, slowest ~180 ms.
 
 ## Security
 
@@ -250,7 +263,10 @@ leaves very little to attack, and these rules keep it that way.
    Done: placed discs pop in; captured discs coin-flip in a ripple outward from the move, with a
    rising tick per flip. Sounds for placing, flipping, an illegal tap, a pass and the game end.
    Pass messages and the game-over banner wait until the flips finish.
-4. **Computer opponent** — `ai.js` with the four difficulty levels, a mode/difficulty selector,
+4. ✅ **Computer opponent** — `ai.js` with the four difficulty levels, a mode/difficulty selector,
    and a short "thinking" delay.
+   Done: 9 AI tests (25 total, ~25 s). Verified in the browser with full games against Easy and
+   Expert: every click during the computer's turn was ignored, a forced pass worked, and the layout
+   fits a 320px-wide phone. The setup card's Cancel button replaced the "tap again" restart check.
 5. **Publish** — security checklist, noreply commit email, create the GitHub repo, branch
    protection, enable GitHub Pages.
